@@ -22,13 +22,15 @@ Install
 of the host that the values should be stored with. Replace "myzqbbixserver" 
 with the hostname/IP of your Zabbix server. 
  1. Add this to your Apache config file: 
-    <Location /server-status>  
-        SetHandler server-status  
-        Allow from 127.0.0.1  
-        Order deny,allow  
-        Deny from all  
-    </Location>  
-    ExtendedStatus On # Optional. Must be in global scope and not in a virtual host  
+```ApacheConf
+<Location /server-status>  
+    SetHandler server-status  
+    Allow from 127.0.0.1  
+    Order deny,allow  
+    Deny from all  
+</Location>  
+ExtendedStatus On # Optional. Must be in global scope and not in a virtual host
+```  
  1. Restart/reload Apache or use "kill -USR1 `cat /var/run/httpd.pid `" for zero downtime
  1. Load zabbix_export.xml into Zabbix
  1. Link the Template_App_HTTPd into the hosts in question
