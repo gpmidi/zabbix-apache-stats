@@ -10,7 +10,8 @@ sends it to Zabbix. The data is sent via the CLI tool zabbix_sender.
 
 Author(s)
 --------
-* Paulson McIntyre (GpMidi)
+* Paulson McIntyre (GpMidi) <paul@gpmidi.net>
+* Zach Bailey <znbailey@gmail.com>
 
 Install
 --------
