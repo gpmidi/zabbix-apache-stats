@@ -37,6 +37,10 @@ with the hostname/IP of your Zabbix server.
  1. Load zabbix_export.xml into Zabbix
  1. Link the Template_App_HTTPd into the hosts in question
 
+Notes
+------
+ * Users of cPanel may need to use add the arguments " -l http://localhost/whm-server-status?auto" to prevent a "ValueError: need more than 1 value to unpack". 
+
 License
 --------
 GPLv2 - See LICENSE file
