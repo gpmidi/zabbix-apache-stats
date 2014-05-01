@@ -22,9 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import urllib
 from optparse import OptionParser
 import os
-from tempfile import mkstemp
 import StringIO
 import csv
+from subprocess import Popen, PIPE, STDOUT
 
 class ErrorSendingValues(RuntimeError):
     """ An error occured while sending the values to the Zabbix 
@@ -44,9 +44,12 @@ def fetchURL(url, user = None, passwd = None):
         conn.close()
     return data
 
-def sendValues(filepath, zabbixserver = "localhost", zabbixport = 10051, senderloc = "zabbix_sender"):
-    r = os.system("%s --zabbix-server '%s' --port '%s' -i '%s' -vv" % (senderloc, zabbixserver, zabbixport, filepath))
-    if r != 0:
+def sendValues(payload, zabbixserver = "localhost", zabbixport = 10051, senderloc = "zabbix_sender"):
+    sender_command = [ senderloc, '--zabbix-server', zabbixserver, '--port', str(zabbixport), '--input-file', '-' ]
+    p = Popen(sender_command, stdout = PIPE, stdin = PIPE, stderr = PIPE)
+
+    out, err = p.communicate( input = payload )
+    if err:
         raise ErrorSendingValues, "An error occured sending the values to the server"
 
 def clean(string, chars):
@@ -214,37 +217,15 @@ License: GPLv2
     data = fetchURL(opts.url, user = opts.user, passwd = opts.passwd)
     
     try:
-        (tempfiled, tempfilepath) = mkstemp()
-        tempfile = open(tempfilepath, 'wb')
-    except:
-        parser.error("Error creating temporary file")
-        
+        data = parse(data = data)
+    except csv.Error:
+        parser.error("Error parsing returned data")
+
+    data_string = ''
+    for key, val in data.items():
+        data_string += "%s apache[%s,%s] %s\n" % (opts.zabbixsource, opts.host, key, val)
+    
     try:
-        try:
-            data = parse(data = data)
-        except csv.Error:
-            parser.error("Error parsing returned data")
-            
-        try:
-            for key, val in data.items():
-                tempfile.write("%s apache[%s,%s] %s\n" % (opts.zabbixsource, opts.host, key, val))
-            tempfile.close()
-        except "bogus":
-            parser.error("Error creating the file to send")
-        
-        try:
-            sendValues(filepath = tempfilepath, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
-        except ErrorSendingValues:
-            parser.error("An error occurred while sending values to the Zabbix server")
-            
-    finally:
-        try:
-            tempfile.close()
-        except:
-            pass
-        os.remove(tempfilepath)
-    
-    
-    
-        
-    
+        sendValues(payload = data_string, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
+    except ErrorSendingValues:
+        parser.error("An error occurred while sending values to the Zabbix server")
