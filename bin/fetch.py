@@ -24,12 +24,40 @@ from optparse import OptionParser
 import os
 import StringIO
 import csv
+import sys
+import logging, logging.handlers
 from subprocess import Popen, PIPE, STDOUT
 
 class ErrorSendingValues(RuntimeError):
     """ An error occured while sending the values to the Zabbix 
     server using zabbix_sender. 
     """
+
+def setLogLevel(loglevel):
+    """
+    Setup logging.
+    """
+
+    numeric_loglevel = getattr(logging, loglevel.upper(), None)
+    if not isinstance(numeric_loglevel, int):
+        raise ValueError('Invalid log level: "%s"\n Try: "debug", "info", "warning", "critical".' % loglevel)
+
+    logging.basicConfig( level=numeric_loglevel, \
+        format='%(asctime)s %(name)s %(levelname)s %(message)s', \
+        datefmt='%Y%m%d:%H%M%S' )
+
+    program = os.path.basename( __file__ )
+    logger = logging.getLogger( program )
+
+    log_handler = logging.handlers.SysLogHandler( )
+    logger.addHandler( log_handler )
+
+    return logger
+
+def zbx_fail(err):
+    logger.critical("%s", err)
+    print "ZBX_NOTSUPPORTED"
+    sys.exit(1)
 
 def fetchURL(url, user = None, passwd = None):
     """ Return the data from a URL """
