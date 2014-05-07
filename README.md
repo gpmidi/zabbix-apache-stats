@@ -45,7 +45,7 @@ This method relies on your polling interval for an item called *apache.status*, 
 The check will run on the host being monitored everytime time *apache.status* is polled. This item is defined as a UserParameter like this:
 
     # returns a single integer, but uses zabbix_sender to populate trapper items
-    UserParameter=apache.status,/var/lib/zabbix/bin/check_apache -c /etc/zabbix_agentd.conf
+    UserParameter=apache.status,/var/lib/zabbix/bin/check_apache --config /etc/zabbix_agentd.conf
 
 Install on apache server to be monitored and connect to status page on localhost. Assumes zabbix-agent is installed.
 
