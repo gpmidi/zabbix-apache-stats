@@ -288,12 +288,19 @@ def main():
     except csv.Error:
         parser.error("Error parsing returned data")
 
-    data_string = ''
-    for key, val in data.items():
-        data_string += "%s apache[%s,%s] %s\n" % (opts.zabbixsource, opts.host, key, val)
-    
+    payload = ""
+    if opts.agentconfig:
+        # agent check; assume hostname from zabbix agent config
+        for key, val in data.items():
+            payload += "-\tapache[%s]\t%s\n" % (key, val)
+
+    else:
+        # cron or remote check; hostname may be distinct from host running the check
+        for key, val in data.items():
+            payload += "%s apache[%s,%s] %s\n" % (opts.zabbixsource, opts.host, key, val)
+
     try:
-        sendValues(payload = data_string, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
+        sendValues(payload = payload, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
     except ErrorSendingValues, e:
         parser.error(e)
 
