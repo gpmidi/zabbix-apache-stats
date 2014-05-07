@@ -243,6 +243,15 @@ License: GPLv2
                       default = "localhost",
                       help = "Zabbix host to use when sending values. [default: %default]",
                       )
+    parser.add_option(
+                      "--config",
+                      action = "store",
+                      type = "string",
+                      dest = "agentconfig",
+                      default = "/etc/zabbix_agentd.conf",
+                      help = "Zabbix agent config to derive Hostname and ServerActive from. [default: %default]",
+                      )
+
     (opts, args) = parser.parse_args()
     if opts.url and (opts.port != 80 or opts.proto != "http"):
         parser.error("Can't specify -u with  -p or -r")
