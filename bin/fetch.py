@@ -74,11 +74,16 @@ def fetchURL(url, user = None, passwd = None):
 
 def sendValues(payload, zabbixserver = "localhost", zabbixport = 10051, senderloc = "zabbix_sender"):
     sender_command = [ senderloc, '--zabbix-server', zabbixserver, '--port', str(zabbixport), '--input-file', '-' ]
-    p = Popen(sender_command, stdout = PIPE, stdin = PIPE, stderr = PIPE)
+    try:
+      p = Popen(sender_command, stdout = PIPE, stdin = PIPE, stderr = PIPE)
+      out, err = p.communicate( input = payload )
 
-    out, err = p.communicate( input = payload )
-    if err:
-        raise ErrorSendingValues, "An error occured sending the values to the server"
+    except Exception, e:
+      err = "%s\nFailed to execute: '%s'" % (e, " ".join(sender_command))
+
+    finally:
+      if err:
+          raise ErrorSendingValues, "An error occured sending the values to the server: %s" % err
 
 def clean(string, chars):
     for i in chars:
@@ -255,5 +260,5 @@ License: GPLv2
     
     try:
         sendValues(payload = data_string, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
-    except ErrorSendingValues:
-        parser.error("An error occurred while sending values to the Zabbix server")
+    except ErrorSendingValues, e:
+        parser.error(e)
