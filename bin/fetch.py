@@ -64,12 +64,14 @@ def fetchURL(url, user = None, passwd = None):
     if user and passwd:
         parts = url.split('://')
         url = parts[0] + "://" + user + ":" + passwd + "@" + parts[1]
-    
-    conn = urllib.urlopen(url)
+
     try:
+        conn = urllib.urlopen(url)
         data = conn.read()
-    finally:
-        conn.close()
+    except:
+        raise
+
+    conn.close()
     return data
 
 def sendValues(payload, zabbixserver = "localhost", zabbixport = 10051, senderloc = "zabbix_sender"):
