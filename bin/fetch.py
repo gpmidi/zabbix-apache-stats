@@ -74,18 +74,36 @@ def fetchURL(url, user = None, passwd = None):
     conn.close()
     return data
 
-def sendValues(payload, zabbixserver = "localhost", zabbixport = 10051, senderloc = "zabbix_sender"):
-    sender_command = [ senderloc, '--zabbix-server', zabbixserver, '--port', str(zabbixport), '--input-file', '-' ]
+def sendValues(payload, agentconfig = None, zabbixserver = None, zabbixport = 10051, senderloc = '/usr/bin/zabbix_sender' ):
+    logger.debug('sendValues: %s' % payload)
+    sender_command = []
+    result = 0
+    err = ''
+
+    # must have a config file OR have hostname, and server name
+    if agentconfig is not None:
+        logger.debug('sending to server in agent config %s' % agentconfig)
+        sender_command = [ senderloc, '--config', agentconfig, '--input-file', '-' ]
+    else:
+        if zabbixserver is not None:
+            logger.debug('sending to server %s:%s' % (zabbixserver, zabbixport))
+            sender_command = [ senderloc, '--zabbix-server', zabbixserver, '--port', str(zabbixport), '--input-file', '-' ]
+        else:
+            logger.error('must specify agent configuration or server name to call zabbix_sender with')
+
     try:
-      p = Popen(sender_command, stdout = PIPE, stdin = PIPE, stderr = PIPE)
-      out, err = p.communicate( input = payload )
+        p = Popen(sender_command, stdout = PIPE, stdin = PIPE, stderr = PIPE)
+        out, err = p.communicate( input = payload )
+        result = 1
 
     except Exception, e:
       err = "%s\nFailed to execute: '%s'" % (e, " ".join(sender_command))
 
     finally:
-      if err:
-          raise ErrorSendingValues, "An error occured sending the values to the server: %s" % err
+        if err:
+            raise ErrorSendingValues, "An error occured sending the values to the server: %s" % err
+
+    return result
 
 def clean(string, chars):
     for i in chars:
@@ -142,7 +160,7 @@ def parse(data):
             
     return ret2
 
-if __name__ == "__main__":
+def get_opts():
     parser = OptionParser(
                         usage = "%prog [-z <Zabbix hostname or IP>] [-o <Apache hostname or IP>]",
                         version = "%prog $Revision: 173 $",
@@ -253,6 +271,11 @@ License: GPLv2
                       )
 
     (opts, args) = parser.parse_args()
+    return opts, args
+
+def main():    
+    opts, args = get_opts()
+
     if opts.url and (opts.port != 80 or opts.proto != "http"):
         parser.error("Can't specify -u with  -p or -r")
     if not opts.url:
@@ -273,3 +296,8 @@ License: GPLv2
         sendValues(payload = data_string, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
     except ErrorSendingValues, e:
         parser.error(e)
+
+if __name__ == "__main__":
+    loglevel = 'debug'
+    logger   = setLogLevel(loglevel)
+    main()
