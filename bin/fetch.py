@@ -262,7 +262,7 @@ License: GPLv2
                       action = "store",
                       type = "string",
                       dest = "agentconfig",
-                      default = "/etc/zabbix_agentd.conf",
+                      default = "",
                       help = "Zabbix agent config to derive Hostname and ServerActive from. [default: %default]",
                       )
 
