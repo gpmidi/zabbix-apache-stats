@@ -4,6 +4,7 @@
 By Paulson McIntyre
 Patches by: 
 Zach Bailey <znbailey@gmail.com>
+Dale Bewley <dale@bewley.net>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,11 +28,6 @@ import csv
 import sys
 import logging, logging.handlers
 from subprocess import Popen, PIPE, STDOUT
-
-class ErrorSendingValues(RuntimeError):
-    """ An error occured while sending the values to the Zabbix 
-    server using zabbix_sender. 
-    """
 
 def setLogLevel(loglevel):
     """
@@ -74,7 +70,7 @@ def fetchURL(url, user = None, passwd = None):
     conn.close()
     return data
 
-def sendValues(payload, agentconfig = None, zabbixserver = None, zabbixport = 10051, senderloc = '/usr/bin/zabbix_sender' ):
+def zabbix_sender(payload, agentconfig = None, zabbixserver = None, zabbixport = 10051, senderloc = '/usr/bin/zabbix_sender' ):
     logger.debug('sendValues: %s' % payload)
     sender_command = []
     result = 0
@@ -101,7 +97,7 @@ def sendValues(payload, agentconfig = None, zabbixserver = None, zabbixport = 10
 
     finally:
         if err:
-            raise ErrorSendingValues, "An error occured sending the values to the server: %s" % err
+            raise Exception("error returned from %s: %s" % (sender_command[0], err))
 
     return result
 
@@ -271,38 +267,59 @@ License: GPLv2
                       )
 
     (opts, args) = parser.parse_args()
+    if opts.url and (opts.port != 80 or opts.proto != "http"):
+        parser.error("Can't specify -u with  -p or -r")
+    if not opts.url:
+        opts.url = "%s://%s:%s/server-status?auto" % (opts.proto, opts.host, opts.port)
+
     return opts, args
 
 def main():    
     opts, args = get_opts()
 
-    if opts.url and (opts.port != 80 or opts.proto != "http"):
-        parser.error("Can't specify -u with  -p or -r")
-    if not opts.url:
-        opts.url = "%s://%s:%s/server-status?auto" % (opts.proto, opts.host, opts.port)
-    
-    data = fetchURL(opts.url, user = opts.user, passwd = opts.passwd)
+    result = 0
+
+    try:
+        server_status = fetchURL(opts.url, user = opts.user, passwd = opts.passwd)
+    except Exception as e:
+        zbx_fail('failed to read server-status: %s' % e)
     
     try:
-        data = parse(data = data)
-    except csv.Error:
-        parser.error("Error parsing returned data")
+        data = parse( data = server_status )
+    except Exception as e:
+        zbx_fail('failed to parse server-status: %s' % e)
 
     payload = ""
+
     if opts.agentconfig:
         # agent check; assume hostname from zabbix agent config
         for key, val in data.items():
             payload += "-\tapache[%s]\t%s\n" % (key, val)
+
+        try:
+            result = zabbix_sender(
+                payload     = payload, 
+                agentconfig = opts.agentconfig, 
+                senderloc   = opts.senderloc )
+        except Exception as e:
+            zbx_fail('failed to send parsed data: %s' % e)
+        else:
+            # return value for apache.status item
+            print result
 
     else:
         # cron or remote check; hostname may be distinct from host running the check
         for key, val in data.items():
             payload += "%s apache[%s,%s] %s\n" % (opts.zabbixsource, opts.host, key, val)
 
-    try:
-        sendValues(payload = payload, zabbixserver = opts.zabbixserver, zabbixport = opts.zabbixport, senderloc = opts.senderloc)
-    except ErrorSendingValues, e:
-        parser.error(e)
+        try:
+            result = zabbix_sender(
+                payload      = payload, 
+                zabbixserver = opts.zabbixserver, 
+                zabbixport   = opts.zabbixport, 
+                senderloc    = opts.senderloc )
+        except Exception as e:
+            zbx_fail('failed to send parsed data: %s' % e)
 
 if __name__ == "__main__":
     loglevel = 'debug'
