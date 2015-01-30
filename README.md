@@ -54,6 +54,7 @@ Install on apache server to be monitored and connect to status page on localhost
  1. Copy conf/check_apache.conf to your zabbix agent include dir. Probably */etc/zabbix_agentd.conf.d/* 
  - **Tip** Check to make sure your include directory is enabled.
  > grep Include /etc/zabbix_agentd.conf
+ 1. **Tip** Make sure you have ServerActive and Hostname filled in your config file.
  1. Restart zabbix-agent.
 
 Cron or Remote Mode Install
