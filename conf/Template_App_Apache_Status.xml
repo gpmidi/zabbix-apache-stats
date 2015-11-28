@@ -574,7 +574,7 @@
                     <inventory_link>0</inventory_link>
                     <applications>
                         <application>
-                            <name>Apache Stats</name>
+                            <name>Apache Worker</name>
                         </application>
                     </applications>
                     <valuemap/>
