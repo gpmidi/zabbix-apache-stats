@@ -289,7 +289,7 @@ License: GPLv2
                       "--status-version",
                       action = "store",
                       type = "choice",
-                      choices=["default", "2.4.13"],
+                      choices = ["default", "2.4.13"],
                       dest = "statusvers",
                       default = "default",
                       help = "Version of the Apache status to parse. Must be `default' or `2.4.13' since status output changed with Apache 2.4.13. [default: %default]",
