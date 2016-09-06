@@ -110,7 +110,7 @@ def clean(string, chars):
         string = string.replace(i, '')
     return string
 
-def parse(data):
+def parse(data, version):
     """ Parse the CSV file into a dict of data
     """
     mapping = {
@@ -126,7 +126,23 @@ def parse(data):
         "I":"Idle cleanup of worker",
         ".":"Open slot with no current process",
         }
-    # Clean out certian chars
+    # Handle post-2.4.13 status format
+    if version == '2.4.13':
+        # First remove server name on first line
+        data = data.splitlines(False)
+        data = data[1:]
+        # Then remove lines with dates (and more than : delimiter in it)
+        lines=[]
+        for l in data:
+            if l.startswith('Server Built'):
+                continue
+            if l.startswith('CurrentTime'):
+                continue
+            if l.startswith('RestartTime'):
+                continue
+            lines.append(l)
+        data = "\n".join(lines)
+    # Clean out certain chars
     replace = '() '
     csvobj = csv.reader(StringIO.StringIO(data), delimiter = ":", skipinitialspace = True)
     ret = {}
@@ -269,6 +285,15 @@ License: GPLv2
                       default = "",
                       help = "Zabbix agent config to derive Hostname and ServerActive from. [default: %default]",
                       )
+    parser.add_option(
+                      "--status-version",
+                      action = "store",
+                      type = "choice",
+                      choices = ["default", "2.4.13"],
+                      dest = "statusvers",
+                      default = "default",
+                      help = "Version of the Apache status to parse. Must be `default' or `2.4.13' since status output changed with Apache 2.4.13. [default: %default]",
+                      )
 
     (opts, args) = parser.parse_args()
     if opts.url and (opts.port != 80 or opts.proto != "http"):
@@ -289,7 +314,7 @@ def main():
         zbx_fail('failed to read server-status: %s' % e)
     
     try:
-        data = parse( data = server_status )
+        data = parse( data = server_status, version = opts.statusvers )
     except Exception as e:
         zbx_fail('failed to parse server-status: %s' % e)
 
