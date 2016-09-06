@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import urllib
+import urllib2, base64
 from optparse import OptionParser
 import os
 import StringIO
@@ -55,17 +55,20 @@ def zbx_fail(err):
 
 def fetchURL(url, user = None, passwd = None):
     """ Return the data from a URL """
+    
+    request = urllib2.Request(url)
+    
     if user and passwd:
-        parts = url.split('://')
-        url = parts[0] + "://" + user + ":" + passwd + "@" + parts[1]
+        base64string = base64.encodestring('%s:%s' % (user, passwd)).replace('\n', '')
+        request.add_header("Authorization", "Basic %s" % base64string)
 
     try:
-        conn = urllib.urlopen(url)
+        conn = urllib2.urlopen(request)
         data = conn.read()
+        conn.close()
     except:
         raise
 
-    conn.close()
     return data
 
 def zabbix_sender(payload, agentconfig = None, zabbixserver = None, zabbixport = 10051, senderloc = '/usr/bin/zabbix_sender' ):
